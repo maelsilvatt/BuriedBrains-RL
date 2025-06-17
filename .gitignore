@@ -135,6 +135,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+buriedBrainsVenv
 
 # Spyder project settings
 .spyderproject
