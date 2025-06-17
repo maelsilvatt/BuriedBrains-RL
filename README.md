@@ -86,6 +86,6 @@ Pull requests, feedback and feature ideas are welcome!
 
 ## 📜 License
 
-GNU 3.0
+GPL-3.0 license
 
 ```
