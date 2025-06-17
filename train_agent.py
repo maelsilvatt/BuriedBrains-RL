@@ -1,9 +1,9 @@
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
-from envs.buried_bornes_env import BuriedBornesEnv
+from envs.buried_brains_env import BuriedBrainsEnv
 
 # Create environment instance
-env = BuriedBornesEnv()
+env = BuriedBrainsEnv()
 
 # Check if environment follows Gym API
 check_env(env, warn=True)

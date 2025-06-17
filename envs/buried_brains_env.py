@@ -2,14 +2,14 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces 
 
-class BuriedBornesEnv(gym.Env):
+class BuriedBrainsEnv(gym.Env):
     """
     Custom RL Environment inspired by Buried Bornes and roguelike RPG mechanics.
     The agent navigates a grid-based dungeon, engages in combat, and aims to survive and explore.
     """
 
     def __init__(self, grid_size=10):
-        super(BuriedBornesEnv, self).__init__()
+        super(BuriedBrainsEnv, self).__init__()
         self.grid_size = grid_size
         self.max_hp = 10
         self.enemy_damage = 2
