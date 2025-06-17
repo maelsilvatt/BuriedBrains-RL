@@ -1,4 +1,3 @@
-import gym
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from envs.buried_bornes_env import BuriedBornesEnv
