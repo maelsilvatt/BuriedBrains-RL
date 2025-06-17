@@ -14,6 +14,7 @@ class BuriedBornesEnv(gym.Env):
         self.max_hp = 10
         self.enemy_damage = 2
         self.agent_damage = 3
+        self.last_pos = None
 
         self.action_space = spaces.Discrete(5)
 
@@ -22,52 +23,88 @@ class BuriedBornesEnv(gym.Env):
             high=self.grid_size,
             shape=(6,),
             dtype=np.int32
-        )    
+        )
 
-    def reset(self, seed=None, options=None):        
+    def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
         self.agent_pos = [0, 0]
         self.agent_hp = self.max_hp
 
-        self.enemy_pos = self.np_random.integers(0, self.grid_size, size=2).tolist()
-        while self.enemy_pos == self.agent_pos:
+        min_dist = self.grid_size // 2
+        while True:
             self.enemy_pos = self.np_random.integers(0, self.grid_size, size=2).tolist()
+            dist = np.linalg.norm(np.array(self.agent_pos) - np.array(self.enemy_pos))
+            if dist > min_dist:
+                break
+        
         self.enemy_hp = self.max_hp
+        self.last_pos = self.agent_pos
         
         return self._get_obs(), {}
 
     def step(self, action):
         dist_old = np.linalg.norm(np.array(self.agent_pos) - np.array(self.enemy_pos))
         
-        reward = -0.01        
+        reward = -0.01
         terminated = False 
-        truncated = False  
+        truncated = False
+
+        self.last_pos = list(self.agent_pos)
 
         # Movement actions
-        if action == 0 and self.agent_pos[1] > 0:
-            self.agent_pos[1] -= 1
-        elif action == 1 and self.agent_pos[1] < self.grid_size - 1:
-            self.agent_pos[1] += 1
-        elif action == 2 and self.agent_pos[0] > 0:
-            self.agent_pos[0] -= 1
-        elif action == 3 and self.agent_pos[0] < self.grid_size - 1:
-            self.agent_pos[0] += 1
+        moved = False
+        if action == 0:  # Up
+            if self.agent_pos[1] > 0:
+                self.agent_pos[1] -= 1
+                moved = True
+        elif action == 1:  # Down
+            if self.agent_pos[1] < self.grid_size - 1:
+                self.agent_pos[1] += 1
+                moved = True
+        elif action == 2:  # Left
+            if self.agent_pos[0] > 0:
+                self.agent_pos[0] -= 1
+                moved = True
+        elif action == 3:  # Right
+            if self.agent_pos[0] < self.grid_size - 1:
+                self.agent_pos[0] += 1
+                moved = True
+
+        if action in [0, 1, 2, 3] and not moved:
+            reward -= 0.5
+        
+        if self.agent_pos == self.last_pos:
+            reward -= 0.5
 
         # Attack action
         elif action == 4:
             if self.agent_pos == self.enemy_pos and self.enemy_hp > 0:
                 self.enemy_hp -= self.agent_damage
-                reward += 3
+                reward += 10
 
         dist_new = np.linalg.norm(np.array(self.agent_pos) - np.array(self.enemy_pos))
-        if dist_new < dist_old:
-            reward += 0.2  # Recompensa por se aproximar
-        else:
-            reward -= 0.2  # Penalidade por se afastar ou ficar parado
+        distance_factor = 0.5
+        reward_dist = (dist_old - dist_new) * distance_factor
+        reward += reward_dist
         
         # Enemy turn if still alive
         if self.enemy_hp > 0:
+            if self.enemy_pos != self.agent_pos:
+                dx = self.agent_pos[0] - self.enemy_pos[0]
+                dy = self.agent_pos[1] - self.enemy_pos[1]
+
+                if abs(dx) > abs(dy):
+                    if dx > 0:
+                        self.enemy_pos[0] += 1
+                    else:
+                        self.enemy_pos[0] -= 1
+                else:
+                    if dy > 0:
+                        self.enemy_pos[1] += 1
+                    else:
+                        self.enemy_pos[1] -= 1
+
             if self.agent_pos == self.enemy_pos:
                 self.agent_hp -= self.enemy_damage
                 reward -= 1
@@ -82,13 +119,13 @@ class BuriedBornesEnv(gym.Env):
         
         return self._get_obs(), reward, terminated, truncated, {}
 
-    def _get_obs(self):        
+    def _get_obs(self):
         relative_pos = np.array(self.enemy_pos) - np.array(self.agent_pos)
         
         return np.array([
             self.agent_pos[0], self.agent_pos[1], self.agent_hp,
-            relative_pos[0],  
-            relative_pos[1],  
+            relative_pos[0],
+            relative_pos[1],
             self.enemy_hp
         ], dtype=np.int32)
 
