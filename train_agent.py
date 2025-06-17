@@ -23,4 +23,4 @@ model = PPO(
 model.learn(total_timesteps=100_000)
 
 # Save the trained model
-model.save("ppo_buried_bornes")
+model.save("ppo_buried_brains")
