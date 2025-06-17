@@ -18,8 +18,8 @@ class BuriedBornesEnv(gym.Env):
         self.action_space = spaces.Discrete(5)
 
         self.observation_space = spaces.Box(
-            low=0,
-            high=max(self.grid_size, self.max_hp),
+            low=-self.grid_size,
+            high=self.grid_size,
             shape=(6,),
             dtype=np.int32
         )    
@@ -38,7 +38,9 @@ class BuriedBornesEnv(gym.Env):
         return self._get_obs(), {}
 
     def step(self, action):
-        reward = -0.1        
+        dist_old = np.linalg.norm(np.array(self.agent_pos) - np.array(self.enemy_pos))
+        
+        reward = -0.01        
         terminated = False 
         truncated = False  
 
@@ -51,11 +53,18 @@ class BuriedBornesEnv(gym.Env):
             self.agent_pos[0] -= 1
         elif action == 3 and self.agent_pos[0] < self.grid_size - 1:
             self.agent_pos[0] += 1
+
         # Attack action
         elif action == 4:
             if self.agent_pos == self.enemy_pos and self.enemy_hp > 0:
                 self.enemy_hp -= self.agent_damage
-                reward += 1
+                reward += 3
+
+        dist_new = np.linalg.norm(np.array(self.agent_pos) - np.array(self.enemy_pos))
+        if dist_new < dist_old:
+            reward += 0.2  # Recompensa por se aproximar
+        else:
+            reward -= 0.2  # Penalidade por se afastar ou ficar parado
         
         # Enemy turn if still alive
         if self.enemy_hp > 0:
@@ -73,10 +82,14 @@ class BuriedBornesEnv(gym.Env):
         
         return self._get_obs(), reward, terminated, truncated, {}
 
-    def _get_obs(self):
+    def _get_obs(self):        
+        relative_pos = np.array(self.enemy_pos) - np.array(self.agent_pos)
+        
         return np.array([
             self.agent_pos[0], self.agent_pos[1], self.agent_hp,
-            self.enemy_pos[0], self.enemy_pos[1], self.enemy_hp
+            relative_pos[0],  
+            relative_pos[1],  
+            self.enemy_hp
         ], dtype=np.int32)
 
     def render(self, mode='human'):

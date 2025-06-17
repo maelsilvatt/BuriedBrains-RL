@@ -8,8 +8,15 @@ env = BuriedBornesEnv()
 # Check if environment follows Gym API
 check_env(env, warn=True)
 
-# Instantiate PPO agent
-model = PPO("MlpPolicy", env, verbose=1)
+# Instantiate PPO 
+policy_kwargs = dict(net_arch=dict(pi=[128, 128], vf=[128, 128]))
+model = PPO(
+    "MlpPolicy",
+    env,
+    verbose=1,
+    gamma=0.995,
+    policy_kwargs=policy_kwargs
+)
 
 # Train the agent
 model.learn(total_timesteps=100_000)
