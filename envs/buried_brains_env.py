@@ -46,13 +46,13 @@ class BuriedBrainsEnv(gym.Env):
     def step(self, action):
         dist_old = np.linalg.norm(np.array(self.agent_pos) - np.array(self.enemy_pos))
         
-        reward = -0.01
+        reward = -0.01  # Small penalty for each step to encourage efficiency
         terminated = False 
         truncated = False
 
         self.last_pos = list(self.agent_pos)
 
-        # Movement actions
+        # Movement actions (0-3)
         moved = False
         if action == 0:  # Up
             if self.agent_pos[1] > 0:
@@ -70,51 +70,44 @@ class BuriedBrainsEnv(gym.Env):
             if self.agent_pos[0] < self.grid_size - 1:
                 self.agent_pos[0] += 1
                 moved = True
-
-        if action in [0, 1, 2, 3] and not moved:
-            reward -= 0.5
         
-        if self.agent_pos == self.last_pos:
-            reward -= 0.5
-
-        # Attack action
-        elif action == 4:
-            if self.agent_pos == self.enemy_pos and self.enemy_hp > 0:
+        # Attack action (4) - now independent of movement
+        if action == 4:
+            if np.linalg.norm(np.array(self.agent_pos) - np.array(self.enemy_pos)) <= 1.0:  # Attack in adjacent cells
                 self.enemy_hp -= self.agent_damage
-                reward += 10
+                reward += 1.0  # Smaller reward for hitting
+                if self.enemy_hp <= 0:
+                    reward += 10  # Big reward for killing
+            else:
+                reward -= 0.2  # Small penalty for attacking air
 
+        # Distance-based reward
         dist_new = np.linalg.norm(np.array(self.agent_pos) - np.array(self.enemy_pos))
-        distance_factor = 0.5
-        reward_dist = (dist_old - dist_new) * distance_factor
-        reward += reward_dist
-        
+        reward += (dist_old - dist_new) * 0.1  # Reduced distance factor
+
         # Enemy turn if still alive
         if self.enemy_hp > 0:
+            # Enemy movement towards agent
             if self.enemy_pos != self.agent_pos:
                 dx = self.agent_pos[0] - self.enemy_pos[0]
                 dy = self.agent_pos[1] - self.enemy_pos[1]
 
                 if abs(dx) > abs(dy):
-                    if dx > 0:
-                        self.enemy_pos[0] += 1
-                    else:
-                        self.enemy_pos[0] -= 1
+                    self.enemy_pos[0] += 1 if dx > 0 else -1
                 else:
-                    if dy > 0:
-                        self.enemy_pos[1] += 1
-                    else:
-                        self.enemy_pos[1] -= 1
+                    self.enemy_pos[1] += 1 if dy > 0 else -1
 
-            if self.agent_pos == self.enemy_pos:
+            # Enemy attack if adjacent
+            if np.linalg.norm(np.array(self.agent_pos) - np.array(self.enemy_pos)) <= 1.0:
                 self.agent_hp -= self.enemy_damage
-                reward -= 1
+                reward -= 2.0  # Increased penalty for being hit
 
-        # Check end conditions
+        # Check termination conditions
         if self.enemy_hp <= 0:
-            reward += 5
+            reward += 20  # Final reward for victory
             terminated = True
         if self.agent_hp <= 0:
-            reward -= 5
+            reward -= 10  # Final penalty for death
             terminated = True
         
         return self._get_obs(), reward, terminated, truncated, {}
