@@ -17,13 +17,22 @@ model.learn(total_timesteps=100_000)
 # Save the trained model
 model.save("ppo_buried_bornes")
 
+print("\n--- INICIANDO TESTE DO MODELO TREINADO ---\n")
+
 # Load and test
 model = PPO.load("ppo_buried_bornes")
-obs = env.reset()
 
-for _ in range(20):
-    action, _states = model.predict(obs)
-    obs, reward, done, info = env.step(action)
-    env.render()
-    if done:
-        obs = env.reset()
+obs, info = env.reset()
+
+for i in range(20):    
+    while True:
+        action, _states = model.predict(obs, deterministic=True)
+                
+        obs, reward, terminated, truncated, info = env.step(action)
+        
+        env.render()
+        
+        if terminated or truncated:
+            print(f"Episódio {i+1} finalizado.")            
+            obs, info = env.reset()
+            break 
